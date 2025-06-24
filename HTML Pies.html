@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pi Pie Factory</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #fbeec1;
+      color: #333;
+      text-align: center;
+      padding: 40px;
+    }
+    .ascii-art {
+      font-size: 14px;
+      white-space: pre;
+      margin-bottom: 20px;
+    }
+    #home, #modeMenu, #game {
+      display: none;
+    }
+    input {
+      font-size: 24px;
+      padding: 10px;
+      width: 300px;
+    }
+    .message {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* Emoji: outlines visible, color fill muted */
+    .emoji {
+      filter: grayscale(100%) brightness(80%) contrast(150%);
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ascii-art" id="loading">
+      ______  ___
+     / __/ / / (_)__ ____  ___
+    _\ \/ /_/ / / _ `/ _ \/ _ \
+   /___/\____/_/\_, / .__/_//_/
+               /___/_/
+   ___  __      __   _           
+  / _ \/ /_____/ /  (_)__  ___ _
+ / , _/ __/ __/ _ \/ / _ \/ _ `/
+/_/|_|\__/\__/_//_/_/_//_/\_, / 
+                         /___/  
+
+    <br>Loading <span class="emoji">🥧</span> Pi Pie Factory...
+  </div>
+
+  <div id="home">
+    <h1><span class="emoji">🥧</span> Pi Pie Factory</h1>
+    <p>Welcome! Learn or test your knowledge of π.<br>Type digits starting from the beginning (but skip the decimal).</p>
+    <button onclick="showModeMenu()">Start</button>
+  </div>
+
+  <div id="modeMenu">
+    <h2>Select Game Mode</h2>
+    <button onclick="startGame('learn')"><span class="emoji">📘</span> Learning Mode</button>
+    <button onclick="startGame('test')"><span class="emoji">🧪</span> Test Mode</button>
+    <br><button onclick="goHome()"><span class="emoji">⬅️</span> Back</button>
+  </div>
+
+  <div id="game">
+    <h1>Pi Pie Factory <span class="emoji">🥧</span></h1>
+    <p>Mode: <span id="modeLabel"></span></p>
+    <p>Pies Baked: <span id="pies">0</span></p>
+    <p>Level: <span id="level">1</span> digit(s) of π</p>
+    <p>π so far: <span id="piSoFar">_</span></p>
+    <input type="text" id="inputBox" placeholder="Type digits of π" autofocus />
+    <div class="message" id="message"></div>
+    <div>
+      <button onclick="resetGame()"><span class="emoji">🔄</span> Reset</button>
+      <button onclick="goHome()"><span class="emoji">🏠</span> Home</button>
+    </div>
+  </div>
+
+  <script>
+    const PI_DIGITS = "3.14159265358979323846264338327950288419716939937510" +
+                      "58209749445923078164062862089986280348253421170679";
+
+    let pies = 0, digitsPerPie = 1, prevLevel = 1;
+    let mode = "learn";
+
+    const inputBox = document.getElementById('inputBox');
+    const piSoFar = document.getElementById('piSoFar');
+    const message = document.getElementById('message');
+    const piesCounter = document.getElementById('pies');
+    const levelCounter = document.getElementById('level');
+    const modeLabel = document.getElementById('modeLabel');
+
+    function formatPiDigits(input) {
+      if (!input) return "_";
+      if (input.length === 1) return input + "._"; // "3._"
+      return input[0] + "." + input.slice(1) + "_"; // e.g., 3.1_, 3.14_
+    }
+
+    function getCorrectAnswer() {
+      const digitsWithoutDot = PI_DIGITS.replace(".", "");
+      return digitsWithoutDot.slice(0, digitsPerPie);
+    }
+
+    function updateLevel() {
+      const newLevel = Math.floor(pies / 5) + 1;
+      const leveledUp = newLevel !== prevLevel;
+      prevLevel = newLevel;
+      digitsPerPie = newLevel;
+      levelCounter.textContent = digitsPerPie;
+      return leveledUp;
+    }
+
+    function updateDisplay() {
+      piesCounter.textContent = pies;
+      levelCounter.textContent = digitsPerPie;
+      modeLabel.innerHTML = mode === "learn" ? "Learning <span class='emoji'>📘</span>" : "Test <span class='emoji'>🧪</span>";
+
+      const digitsWithoutDot = PI_DIGITS.replace(".", "");
+      if (mode === "learn") {
+        inputBox.placeholder = digitsWithoutDot.slice(0, digitsPerPie);
+      } else {
+        inputBox.placeholder = "Type digits of π (no decimal)";
+      }
+    }
+
+    function saveProgress() {
+      const saveKey = `piPieSave_${mode}`;
+      localStorage.setItem(saveKey, JSON.stringify({
+        pies,
+        prevLevel
+      }));
+    }
+
+    function loadProgress() {
+      const saveKey = `piPieSave_${mode}`;
+      const saved = localStorage.getItem(saveKey);
+      if (saved) {
+        const data = JSON.parse(saved);
+        pies = data.pies || 0;
+        prevLevel = data.prevLevel || 1;
+        digitsPerPie = Math.floor(pies / 5) + 1;
+      } else {
+        pies = 0;
+        digitsPerPie = 1;
+        prevLevel = 1;
+      }
+    }
+
+    function resetGame() {
+      pies = 0;
+      digitsPerPie = 1;
+      prevLevel = 1;
+      inputBox.disabled = false;
+      inputBox.value = '';
+      message.innerHTML = '';
+      piSoFar.textContent = formatPiDigits('');
+      updateDisplay();
+      saveProgress();
+    }
+
+    function startGame(selectedMode) {
+      mode = selectedMode;
+      loadProgress();
+      updateDisplay();
+      inputBox.value = '';
+      inputBox.disabled = false;
+      message.innerHTML = '';
+      piSoFar.textContent = formatPiDigits('');
+      document.getElementById('home').style.display = 'none';
+      document.getElementById('modeMenu').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+    }
+
+    function goHome() {
+      saveProgress();
+      document.getElementById('game').style.display = 'none';
+      document.getElementById('modeMenu').style.display = 'none';
+      document.getElementById('home').style.display = 'block';
+    }
+
+    function showModeMenu() {
+      document.getElementById('home').style.display = 'none';
+      document.getElementById('modeMenu').style.display = 'block';
+    }
+
+    inputBox.addEventListener('input', () => {
+      const input = inputBox.value.trim();
+      piSoFar.textContent = formatPiDigits(input);
+
+      if (input.length < digitsPerPie) return;
+
+      inputBox.disabled = true;
+
+      setTimeout(() => {
+        const correct = getCorrectAnswer();
+        let leveledUp = false;
+
+        if (input === correct) {
+          pies++;
+          leveledUp = updateLevel();
+          message.innerHTML = "<span class='emoji'>🥧</span> Pie baked!" + (leveledUp ? ` <span class='emoji'>🎉</span> Level up! Now type ${digitsPerPie} digits.` : '');
+        } else {
+          pies = Math.max(0, pies - 1);
+          leveledUp = updateLevel();
+          message.innerHTML = `<span class='emoji'>🚫</span> Wrong! You lost a pie.` + (leveledUp ? ` <span class='emoji'>⬇️</span> Level down. Now type ${digitsPerPie} digits.` : '');
+        }
+
+        saveProgress();
+        updateDisplay();
+        inputBox.value = '';
+        inputBox.disabled = false;
+        piSoFar.textContent = formatPiDigits('');
+      }, 1000);
+    });
+
+    // Show home after loading
+    setTimeout(() => {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('home').style.display = 'block';
+    }, 2000);
+  </script>
+
+</body>
+</html>
